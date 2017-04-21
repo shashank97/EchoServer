@@ -10,11 +10,13 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/wait.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
-void error(char *msg);
+void error(const char *msg);
 
-void makeChild();
+void toLog(char *IP[], char *msg[]);
 
-void connectUDP();
+void connectUDP(int portno);
 
-void connectTCP(int argc, char *argv[]);
+void connectTCP(int portno);
