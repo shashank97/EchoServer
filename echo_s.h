@@ -15,7 +15,7 @@
 
 void error(const char *msg);
 
-void toLog(char *IP[], char *msg[]);
+void toLog(const char *IP, const char *msg);
 
 void connectUDP(int portno);
 

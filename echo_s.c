@@ -65,43 +65,51 @@ void error(const char *msg){
 }
 
 //send the message received to a log server
-void toLog(char *IP[], char *msg[]){	
-	int sock, n;
-	unsigned int length;
-	struct sockaddr_in server, from;
-	struct hostent *hp;
-	char buffer[256];
+void toLog(const char *IP, const char *msg){	
+	int sockfd;
+	struct sockaddr_in serv_addr;
 
-	sock = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sock < 0){
-		error("ERROR creating a socket toLog");
+	int portno = 9999;
+	struct hostent *server = gethostbyname("localhost");
+	
+	//if host not found
+	if (server == NULL){
+		error("ERROR no such host");
 	}
 
-	server.sin_family = AF_INET;
-	hp = gethostbyname("LogServer");
+	bzero ((char *) &serv_addr, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	bcopy((char *)server->h_addr_list[0],
+	      (char *)&serv_addr.sin_addr.s_addr,
+	      server->h_length);
+	serv_addr.sin_port = htons(portno);
+
+	const size_t BUFFER_SIZE = 512;
+	//sets the memory to zero
+	char *buffer = (char *)calloc(BUFFER_SIZE, sizeof(char));
 	
-	bcopy((char *)hp->h_addr,
-		(char *)&server.sin_addr,
-		hp->h_length);
-	server.sin_port = 9999;
-	length = sizeof(struct sockaddr_in);
+	//Combine IP and msg into 1 and store it into buffer
+	strcat (buffer, IP);
+	strcat (buffer, "\t");
+	strcat (buffer, msg);
+
+	//comunicate using UDP
+	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sockfd < 0){
+		error("ERROR opening socket");
+	}
+
+	socklen_t serverAddressLength = sizeof(serv_addr);
+	int numBytes = (int)sendto(sockfd, buffer, strlen(buffer), 0,
+				(struct sockaddr *)&serv_addr, serverAddressLength);
+	if (numBytes < 0){
+		error("ERROR sending to log server");
+	}
 	
-	bzero(buffer, 256);
-	fgets(buffer, 255, (FILE *)IP);
-	n = sendto(sock, buffer, 
-		strlen(buffer), 0, (const struct sockaddr *)&server, length);
-	if (n < 0){
-		error("ERROR sendto log server for IP");
-	}
-	bzero(buffer, 256);
-	fgets(buffer, 255, (FILE *)msg);
-	n = sendto(sock, buffer, 
-		strlen(buffer), 0, (const struct sockaddr *)&server, length);
-	if (n < 0){
-		error("ERROR sendto log server for message");
-	}
-	close(sock);
-}
+	//free buffer to prevent memory leak
+	free(buffer);
+}//end of toLog
+
 //make connection using UDP
 void connectUDP(int portno){
 	int sockfd, length, n, pid;
@@ -136,6 +144,7 @@ void connectUDP(int portno){
 			write(1, "Received a datagram: ", 21);
 			write(1, buf, n);
 			n = sendto(sockfd, buf, 17, 0, (struct sockaddr *)&from, fromlen);
+			toLog(inet_ntoa(from.sin_addr), buf);
 			if (n < 0){
 				error("ERROR on sendto");
 			}
@@ -201,7 +210,7 @@ void connectTCP(int portno){
 				error("ERROR reading from socket");
 			}
 			printf("Received a TCP: %s", buffer);
-			toLog((char **)inet_ntoa(cli_addr.sin_addr), (char **)buffer);
+			toLog(inet_ntoa(cli_addr.sin_addr), buffer);
 			n = write(newsockfd, buffer, 18);
 			if (n < 0){
 				error("ERROR writing to socket");
