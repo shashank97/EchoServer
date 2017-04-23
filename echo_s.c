@@ -59,7 +59,7 @@ int main(int argc, char *argv[]){
 	exit(0);
 }
 
-void error(const char *msg){
+void terror(const char *msg){
 	perror(msg);
 	exit(1);
 }
@@ -135,7 +135,7 @@ void connectUDP(int portno){
 	fromlen = sizeof(struct sockaddr_in);
 	
 	//infinite loop to recieve message and send messages
-	while (true){
+	while (1){
 			bzero(buf, 1024);	
 			n = recvfrom (sockfd, buf, 1024, 0, (struct sockaddr *)&from, &fromlen);
 			if (n < 0){
@@ -190,7 +190,7 @@ void connectTCP(int portno){
 	clilen = sizeof(cli_addr);
 	int pid;
 
-	while(true){
+	while(1){
 		newsockfd = accept(sockfd, (struct sockaddr *) 
 			&cli_addr, &clilen);
 		if (newsockfd < 0){
